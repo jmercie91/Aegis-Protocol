@@ -1,0 +1,15 @@
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.csproj.AssemblyReference.cache
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.AssemblyInfoInputs.cache
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.AssemblyInfo.cs
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.csproj.CoreCompileInputs.cache
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\bin\Debug\net6.0\NbaMatchPredictor.exe
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\bin\Debug\net6.0\NbaMatchPredictor.deps.json
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\bin\Debug\net6.0\NbaMatchPredictor.runtimeconfig.json
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\bin\Debug\net6.0\NbaMatchPredictor.dll
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\bin\Debug\net6.0\NbaMatchPredictor.pdb
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.dll
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\refint\NbaMatchPredictor.dll
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.pdb
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\NbaMatchPredictor.genruntimeconfig.cache
+C:\Users\Jeff\source\repos\NbaMatchPredictor\NbaMatchPredictor\obj\Debug\net6.0\ref\NbaMatchPredictor.dll

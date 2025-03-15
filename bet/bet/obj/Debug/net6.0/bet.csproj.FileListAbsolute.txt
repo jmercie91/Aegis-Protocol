@@ -1,0 +1,15 @@
+C:\Users\Jeff\source\repos\bet\bet\bin\Debug\net6.0\bet.exe
+C:\Users\Jeff\source\repos\bet\bet\bin\Debug\net6.0\bet.deps.json
+C:\Users\Jeff\source\repos\bet\bet\bin\Debug\net6.0\bet.runtimeconfig.json
+C:\Users\Jeff\source\repos\bet\bet\bin\Debug\net6.0\bet.dll
+C:\Users\Jeff\source\repos\bet\bet\bin\Debug\net6.0\bet.pdb
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.csproj.AssemblyReference.cache
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.AssemblyInfoInputs.cache
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.AssemblyInfo.cs
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.csproj.CoreCompileInputs.cache
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.dll
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\refint\bet.dll
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.pdb
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\bet.genruntimeconfig.cache
+C:\Users\Jeff\source\repos\bet\bet\obj\Debug\net6.0\ref\bet.dll
