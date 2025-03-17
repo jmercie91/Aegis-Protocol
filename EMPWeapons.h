@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "MechCharacter.generated.h"
+#include "MechCharacter.generated.h" // Include the generated header file
 
 UCLASS()
 class AEGISPROTOCOL_API AMechCharacter : public ACharacter

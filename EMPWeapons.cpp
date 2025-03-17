@@ -1,6 +1,7 @@
 #include "MechCharacter.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "EMPWeapons.h"
 
 AMechCharacter::AMechCharacter()
 {

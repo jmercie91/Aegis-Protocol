@@ -1,77 +1,145 @@
-// Aegis Protocol - WeaponSystem.cpp
-// Implements weapon slotting, ammo, ballistics, and firing logic.
+// Aegis Protocol - WeatherSystem.cpp
+// Implements real-time weather effects, multiplayer synchronization, and radar adjustments.
 
-#include "WeaponSystem.h"
-#include "GameFramework/Actor.h"
+#include "WeatherSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/AudioComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "MultiplayerManager.h"
+#include "RadarHUD.h"
 
-AWeaponSystem::AWeaponSystem()
+AWeatherSystem::AWeatherSystem()
 {
     PrimaryActorTick.bCanEverTick = true;
-    TotalWeight = 0.0f;
+    CurrentWeather = EWeatherCondition::Clear;
+    ActiveWeatherEffect = nullptr;
 }
 
-void AWeaponSystem::BeginPlay()
+void AWeatherSystem::BeginPlay()
 {
     Super::BeginPlay();
+
+    // Start random weather changes every 3-5 minutes
+    GetWorld()->GetTimerManager().SetTimer(WeatherTimerHandle, this, &AWeatherSystem::ChangeWeather, FMath::RandRange(180.0f, 300.0f), true);
 }
 
-void AWeaponSystem::Tick(float DeltaTime)
+void AWeatherSystem::SetWeather(EWeatherRegion Region)
 {
-    Super::Tick(DeltaTime);
+    CurrentRegion = Region;
+    ChangeWeather();
 }
 
-void AWeaponSystem::FireWeapon()
+void AWeatherSystem::ChangeWeather()
 {
-    for (const auto& Weapon : EquippedWeapons)
+    StopWeatherEffects();
+
+    float RandomChance = FMath::RandRange(0.0f, 1.0f);
+
+    switch (CurrentRegion)
     {
-        FWeaponStats WeaponStats = Weapon.Value;
+    case EWeatherRegion::UnitedFront:
+        if (RandomChance < 0.1f) CurrentWeather = EWeatherCondition::Rain;
+        else if (RandomChance < 0.05f) CurrentWeather = EWeatherCondition::Storm;
+        else CurrentWeather = EWeatherCondition::Clear;
+        break;
+    case EWeatherRegion::ZephyrDominion:
+        if (RandomChance < 0.2f) CurrentWeather = EWeatherCondition::Sandstorm;
+        else CurrentWeather = EWeatherCondition::Clear;
+        break;
+    case EWeatherRegion::VolkovImperium:
+        if (RandomChance < 0.4f) CurrentWeather = EWeatherCondition::Snow;
+        else if (RandomChance < 0.2f) CurrentWeather = EWeatherCondition::Storm;
+        else CurrentWeather = EWeatherCondition::Clear;
+        break;
+    case EWeatherRegion::PhantomSyndicate:
+        if (RandomChance < 0.3f) CurrentWeather = EWeatherCondition::Rain;
+        else if (RandomChance < 0.2f) CurrentWeather = EWeatherCondition::Fog;
+        else CurrentWeather = EWeatherCondition::Clear;
+        break;
+    }
 
-        if (WeaponStats.AmmoType == EAmmoType::Explosive)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Firing Explosive Round! Damage: %.2f"), WeaponStats.Damage);
-        }
-        else if (WeaponStats.AmmoType == EAmmoType::ArmorPiercing)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Firing Armor-Piercing Round! Damage: %.2f"), WeaponStats.Damage);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Log, TEXT("Firing Standard Round! Damage: %.2f"), WeaponStats.Damage);
-        }
+    PlayWeatherEffects();
+    SyncWeatherForAllPlayers(CurrentWeather);
+    AdjustRadarVisibility();
+}
 
-        if (WeaponStats.bHasHeatMechanic)
-        {
-            WeaponStats.HeatBuildUp += 5.0f;
-            UE_LOG(LogTemp, Log, TEXT("Weapon Heat Increased: %.2f"), WeaponStats.HeatBuildUp);
-        }
+void AWeatherSystem::PlayWeatherEffects()
+{
+    UParticleSystem* SelectedEffect = nullptr;
+    USoundCue* SelectedSound = nullptr;
 
-        if (WeaponStats.HeatBuildUp >= 100.0f)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Weapon Overheated! Wait for cooldown."));
-        }
+    switch (CurrentWeather)
+    {
+    case EWeatherCondition::Rain:
+        SelectedEffect = RainEffect;
+        SelectedSound = RainSound;
+        break;
+    case EWeatherCondition::Storm:
+        SelectedEffect = StormEffect;
+        SelectedSound = StormSound;
+        break;
+    case EWeatherCondition::Snow:
+        SelectedEffect = SnowEffect;
+        SelectedSound = SnowSound;
+        break;
+    case EWeatherCondition::Sandstorm:
+        SelectedEffect = SandstormEffect;
+        SelectedSound = SandstormSound;
+        break;
+    case EWeatherCondition::Fog:
+        SelectedEffect = FogEffect;
+        SelectedSound = FogSound;
+        break;
+    default:
+        break;
+    }
+
+    if (SelectedEffect)
+    {
+        ActiveWeatherEffect = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, GetActorLocation());
+    }
+
+    if (SelectedSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(GetWorld(), SelectedSound, GetActorLocation());
     }
 }
 
-void AWeaponSystem::ReloadWeapon()
+void AWeatherSystem::StopWeatherEffects()
 {
-    UE_LOG(LogTemp, Log, TEXT("Reloading Weapon!"));
-}
-
-void AWeaponSystem::AttachWeapon(EWeaponSlot Slot, FWeaponStats Weapon)
-{
-    if (EquippedWeapons.Contains(Slot))
+    if (ActiveWeatherEffect)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Replacing weapon in slot %d"), (uint8)Slot);
+        ActiveWeatherEffect->DestroyComponent();
+        ActiveWeatherEffect = nullptr;
     }
 
-    EquippedWeapons.Add(Slot, Weapon);
-    TotalWeight += Weapon.Weight;
-
-    UE_LOG(LogTemp, Log, TEXT("Weapon Attached in Slot: %d | Total Weight: %.2f"), (uint8)Slot, TotalWeight);
+    UGameplayStatics::StopAllSoundsAtLocation(GetWorld(), GetActorLocation());
 }
 
-float AWeaponSystem::GetWeaponWeight()
+void AWeatherSystem::SyncWeatherForAllPlayers(EWeatherCondition NewWeather)
 {
-    return TotalWeight;
+    CurrentWeather = NewWeather;
+    PlayWeatherEffects();
+    AdjustRadarVisibility();
+}
+
+void AWeatherSystem::AdjustRadarVisibility()
+{
+    ARadarHUD* RadarHUD = Cast<ARadarHUD>(UGameplayStatics::GetActorOfClass(GetWorld(), ARadarHUD::StaticClass()));
+
+    if (RadarHUD)
+    {
+        switch (CurrentWeather)
+        {
+        case EWeatherCondition::Fog:
+        case EWeatherCondition::Storm:
+        case EWeatherCondition::Sandstorm:
+            RadarHUD->ReduceRadarRange(30.0f);
+            break;
+        default:
+            RadarHUD->ResetRadarRange();
+            break;
+        }
+    }
 }
