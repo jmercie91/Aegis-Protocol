@@ -1,24 +1,64 @@
 // Aegis Protocol - WeaponSystem.h
-// Manages core weapon mechanics, firing, reloading, and ammo system
+// Manages all weapons, firing logic, weight calculations, and slot system.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "AmmoTypes.h"
+#include "WeaponSlotSystem.h" // Integrating the slot system
 #include "WeaponSystem.generated.h"
+
+UENUM(BlueprintType)
+enum class EWeaponSlot : uint8
+{
+    Left UMETA(DisplayName = "Left Side"),
+    Right UMETA(DisplayName = "Right Side"),
+    Head UMETA(DisplayName = "Head Slot")
+};
 
 UENUM(BlueprintType)
 enum class EWeaponType : uint8
 {
-    Sniper UMETA(DisplayName = "Sniper"),
+    SniperRifle UMETA(DisplayName = "Sniper Rifle"),
     AssaultRifle UMETA(DisplayName = "Assault Rifle"),
     Shotgun UMETA(DisplayName = "Shotgun"),
     MachineGun UMETA(DisplayName = "Machine Gun"),
     RocketLauncher UMETA(DisplayName = "Rocket Launcher"),
     GrenadeLauncher UMETA(DisplayName = "Grenade Launcher"),
-    LockOnWeapon UMETA(DisplayName = "Lock-On Weapon"),
-    MeleeWeapon UMETA(DisplayName = "Melee"),
-    EMPWeapon UMETA(DisplayName = "EMP")
+    LockOnMissile UMETA(DisplayName = "Lock-On Missile"),
+    MeleeWeapon UMETA(DisplayName = "Melee Weapon"),
+    EMPWeapon UMETA(DisplayName = "EMP Weapon")
+};
+
+USTRUCT(BlueprintType)
+struct FWeaponStats
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    EWeaponType WeaponType;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float Damage;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float FireRate;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float Range;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float Weight;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    EAmmoType AmmoType;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    bool bHasHeatMechanic;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    float HeatBuildUp;
 };
 
 UCLASS()
@@ -29,36 +69,40 @@ class AEGISPROTOCOL_API AWeaponSystem : public AActor
 public:
     AWeaponSystem();
 
-    virtual void Tick(float DeltaTime) override;
-    void FireWeapon();
-    void ReloadWeapon();
-    bool CanFire() const;
-    void ApplyWeaponEffects(AActor* HitTarget);
-    void SwitchWeapon(EWeaponType NewWeaponType);
-    EWeaponType GetCurrentWeaponType() const;
-
 protected:
     virtual void BeginPlay() override;
 
+public:
+    virtual void Tick(float DeltaTime) override;
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void FireWeapon();
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void ReloadWeapon();
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void AttachWeapon(EWeaponSlot Slot, FWeaponStats Weapon);
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    float GetWeaponWeight();
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    void SwitchWeapon(EWeaponType NewWeaponType);
+
+    UFUNCTION(BlueprintCallable, Category = "Weapon")
+    EWeaponType GetCurrentWeaponType() const;
+
 private:
-    UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-    EWeaponType CurrentWeaponType;
+    TMap<EWeaponSlot, FWeaponStats> EquippedWeapons;
+    UPROPERTY(EditAnywhere, Category = "Weapon Config")
+    float TotalWeight;
 
-    UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-    int32 AmmoCount;
+    UPROPERTY()
+    AWeaponSlotSystem* WeaponSlotSystem; // Link to weapon slot system
 
-    UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-    int32 MaxAmmo;
-
-    UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-    float FireRate;
-
-    UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-    float ReloadTime;
-
-    UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-    bool bIsReloading;
-
+    void ApplyWeaponEffects(AActor* HitTarget);
+    bool CanFire() const;
     void StartReload();
     void FinishReload();
 };

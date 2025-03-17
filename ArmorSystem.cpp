@@ -1,45 +1,25 @@
 // Aegis Protocol - ArmorSystem.cpp
-// Implements armor durability, directional energy shields, weight system, and damage absorption
+// Implements armor durability, energy shield cooldowns, and damage logic.
 
 #include "ArmorSystem.h"
 #include "TimerManager.h"
-#include "MechCharacter.h"
+#include "GameFramework/Actor.h"
 
 AArmorSystem::AArmorSystem()
 {
     PrimaryActorTick.bCanEverTick = true;
-    ArmorType = EArmorType::Medium;
-    bShieldActive = false;
-    ShieldCooldownTime = 100.0f; // 1 minute cooldown
-    ShieldCooldownRemaining = 0.0f;
 
-    // Define armor stats based on type
-    switch (ArmorType)
-    {
-    case EArmorType::Light:
-        MaxArmorHealth = 100.0f;
-        DamageReductionPercent = 10.0f;
-        WeightImpact = 5.0f;
-        break;
-    case EArmorType::Medium:
-        MaxArmorHealth = 250.0f;
-        DamageReductionPercent = 25.0f;
-        WeightImpact = 15.0f;
-        break;
-    case EArmorType::Heavy:
-        MaxArmorHealth = 500.0f;
-        DamageReductionPercent = 50.0f;
-        WeightImpact = 30.0f;
-        break;
-    case EArmorType::Prototype:
-        MaxArmorHealth = 350.0f;
-        DamageReductionPercent = 40.0f;
-        WeightImpact = 20.0f;
-        bShieldActive = true;
-        break;
-    }
+    // Default armor settings
+    Armor.ArmorType = EArmorType::Medium;
+    Armor.MaxDurability = 1000.0f;
+    Armor.CurrentDurability = Armor.MaxDurability;
+    Armor.Weight = 50.0f;
+    Armor.bIsDestroyed = false;
 
-    CurrentArmorHealth = MaxArmorHealth;
+    // Shield settings
+    bIsShieldActive = false;
+    ShieldCooldownTime = 30.0f;  // Cooldown when destroyed
+    ShieldRegenTime = 15.0f;     // Cooldown when toggled off manually
 }
 
 void AArmorSystem::BeginPlay()
@@ -50,97 +30,69 @@ void AArmorSystem::BeginPlay()
 void AArmorSystem::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
-    if (!bShieldActive && ArmorType == EArmorType::Prototype)
-    {
-        UpdateShieldCooldown(DeltaTime);
-    }
 }
 
-void AArmorSystem::TakeDamage(float DamageAmount, FVector ImpactDirection)
+void AArmorSystem::TakeDamage(float DamageAmount)
 {
-    if (IsArmorBroken())
+    if (bIsShieldActive)
     {
-        return; // Armor is destroyed, no longer providing protection
+        UE_LOG(LogTemp, Log, TEXT("Shield absorbed damage: %f"), DamageAmount);
+        DeactivatePrototypeShield();
+        return;
     }
 
-    if (ArmorType == EArmorType::Prototype && bShieldActive)
+    Armor.CurrentDurability -= DamageAmount;
+
+    if (Armor.CurrentDurability <= 0)
     {
-        FVector Forward = GetActorForwardVector();
-
-        if (FVector::DotProduct(Forward, ImpactDirection) > 0.5f)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Prototype Shield Blocked Damage!"));
-            return; // Shield blocks attack from the front
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Prototype Shield Failed - Hit from behind!"));
-            bShieldActive = false;
-            StartShieldCooldown();
-        }
-    }
-
-    float DamageToApply = DamageAmount * ((100.0f - DamageReductionPercent) / 100.0f);
-    CurrentArmorHealth -= DamageToApply;
-
-    if (CurrentArmorHealth <= 0)
-    {
-        CurrentArmorHealth = 0;
-        UE_LOG(LogTemp, Warning, TEXT("Armor is permanently destroyed!"));
-        Destroy(); // Armor is fully destroyed and removed from the mech
+        Armor.bIsDestroyed = true;
+        Armor.CurrentDurability = 0;
+        UE_LOG(LogTemp, Log, TEXT("Armor Destroyed!"));
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("Armor took damage: %.2f | Remaining Armor: %.2f"), DamageToApply, CurrentArmorHealth);
+        UE_LOG(LogTemp, Log, TEXT("Armor took damage: %f | Remaining: %f"), DamageAmount, Armor.CurrentDurability);
     }
 }
 
-bool AArmorSystem::IsArmorBroken() const
+void AArmorSystem::RegenerateArmor()
 {
-    return CurrentArmorHealth <= 0;
-}
-
-float AArmorSystem::GetArmorHealth() const
-{
-    return CurrentArmorHealth;
-}
-
-float AArmorSystem::GetWeightImpact() const
-{
-    return WeightImpact;
-}
-
-void AArmorSystem::ApplyWeightPenalty(AMechCharacter* Mech)
-{
-    if (Mech)
+    if (!Armor.bIsDestroyed)
     {
-        float SpeedPenalty = WeightImpact * 0.05f; // Example: Each 10 weight reduces speed by 5%
-        Mech->ModifySpeed(-SpeedPenalty);
+        Armor.CurrentDurability = Armor.MaxDurability;
+        UE_LOG(LogTemp, Log, TEXT("Armor fully regenerated!"));
     }
 }
 
-bool AArmorSystem::IsShieldActive() const
+void AArmorSystem::ActivatePrototypeShield()
 {
-    return bShieldActive;
-}
-
-void AArmorSystem::StartShieldCooldown()
-{
-    ShieldCooldownRemaining = ShieldCooldownTime;
-    UE_LOG(LogTemp, Log, TEXT("Prototype Shield Deactivated - Cooldown Started"));
-}
-
-void AArmorSystem::UpdateShieldCooldown(float DeltaTime)
-{
-    if (ShieldCooldownRemaining > 0)
+    if (!bIsShieldActive && !GetWorld()->GetTimerManager().IsTimerActive(ShieldCooldownTimer))
     {
-        ShieldCooldownRemaining -= DeltaTime;
-
-        if (ShieldCooldownRemaining <= 0)
-        {
-            bShieldActive = true;
-            UE_LOG(LogTemp, Log, TEXT("Prototype Shield Reactivated!"));
-        }
+        bIsShieldActive = true;
+        UE_LOG(LogTemp, Log, TEXT("Prototype Shield Activated!"));
     }
+}
+
+void AArmorSystem::DeactivatePrototypeShield()
+{
+    bIsShieldActive = false;
+    UE_LOG(LogTemp, Log, TEXT("Prototype Shield Deactivated!"));
+
+    GetWorld()->GetTimerManager().SetTimer(
+        ShieldCooldownTimer,
+        this,
+        &AArmorSystem::ResetShieldCooldown,
+        Armor.bIsDestroyed ? ShieldCooldownTime : ShieldRegenTime,
+        false
+    );
+}
+
+bool AArmorSystem::IsArmorDestroyed() const
+{
+    return Armor.bIsDestroyed;
+}
+
+void AArmorSystem::ResetShieldCooldown()
+{
+    UE_LOG(LogTemp, Log, TEXT("Prototype Shield Ready for Activation!"));
 }

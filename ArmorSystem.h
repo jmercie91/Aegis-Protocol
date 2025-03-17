@@ -1,5 +1,5 @@
 // Aegis Protocol - ArmorSystem.h
-// Manages armor plates attached to mech parts (cockpit, weapons, legs) & energy shields
+// Manages armor plating, durability, and prototype energy shield cooldown.
 
 #pragma once
 
@@ -13,7 +13,28 @@ enum class EArmorType : uint8
     Light UMETA(DisplayName = "Light Armor"),
     Medium UMETA(DisplayName = "Medium Armor"),
     Heavy UMETA(DisplayName = "Heavy Armor"),
-    Prototype UMETA(DisplayName = "Prototype Energy Shield")
+    PrototypeShield UMETA(DisplayName = "Prototype Energy Shield")
+};
+
+USTRUCT(BlueprintType)
+struct FArmorStats
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Armor")
+    EArmorType ArmorType;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Armor")
+    float MaxDurability;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Armor")
+    float CurrentDurability;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Armor")
+    float Weight;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Armor")
+    bool bIsDestroyed;
 };
 
 UCLASS()
@@ -24,45 +45,42 @@ class AEGISPROTOCOL_API AArmorSystem : public AActor
 public:
     AArmorSystem();
 
-    virtual void Tick(float DeltaTime) override;
-    void TakeDamage(float DamageAmount, FVector ImpactDirection);
-    bool IsArmorBroken() const;
-    float GetArmorHealth() const;
-    float GetWeightImpact() const;
-    void ApplyWeightPenalty(class AMechCharacter* Mech);
-    bool IsShieldActive() const;
-
 protected:
     virtual void BeginPlay() override;
 
+public:
+    virtual void Tick(float DeltaTime) override;
+
+    UFUNCTION(BlueprintCallable, Category = "Armor")
+    void TakeDamage(float DamageAmount);
+
+    UFUNCTION(BlueprintCallable, Category = "Armor")
+    void RegenerateArmor();
+
+    UFUNCTION(BlueprintCallable, Category = "Armor")
+    void ActivatePrototypeShield();
+
+    UFUNCTION(BlueprintCallable, Category = "Armor")
+    void DeactivatePrototypeShield();
+
+    UFUNCTION(BlueprintCallable, Category = "Armor")
+    bool IsArmorDestroyed() const;
+
 private:
-    UPROPERTY(EditAnywhere, Category = "Armor Properties")
-    EArmorType ArmorType;
+    UPROPERTY(EditAnywhere, Category = "Armor Config")
+    FArmorStats Armor;
 
-    UPROPERTY(EditAnywhere, Category = "Armor Properties")
-    float MaxArmorHealth;
+    UPROPERTY(EditAnywhere, Category = "Shield Config")
+    bool bIsShieldActive;
 
-    UPROPERTY(VisibleAnywhere, Category = "Armor Properties")
-    float CurrentArmorHealth;
+    UPROPERTY(EditAnywhere, Category = "Shield Config")
+    float ShieldCooldownTime;
 
-    UPROPERTY(EditAnywhere, Category = "Armor Properties")
-    float DamageReductionPercent; // % of damage absorbed
+    UPROPERTY(EditAnywhere, Category = "Shield Config")
+    float ShieldRegenTime;
 
-    UPROPERTY(EditAnywhere, Category = "Armor Properties")
-    float WeightImpact; // How much weight it adds to the mech
+    UFUNCTION()
+    void ResetShieldCooldown();
 
-    UPROPERTY(EditAnywhere, Category = "Prototype Shield")
-    bool bShieldActive; // Only applies to Prototype Armor
-
-    UPROPERTY(EditAnywhere, Category = "Prototype Shield")
-    float ShieldCooldownTime; // Cooldown before shield reactivates
-
-    UPROPERTY(VisibleAnywhere, Category = "Prototype Shield")
-    float ShieldCooldownRemaining;
-
-    UPROPERTY(EditAnywhere, Category = "Prototype Shield")
-    FVector ShieldDirection; // Directional protection
-
-    void StartShieldCooldown();
-    void UpdateShieldCooldown(float DeltaTime);
+    FTimerHandle ShieldCooldownTimer;
 };

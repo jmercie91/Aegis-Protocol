@@ -1,42 +1,43 @@
+// Aegis Protocol - LoadoutManager.h
+// Manages mech customization, weapon selection, armor application, and loadout persistence.
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Weapon.h" // Assuming you have a base Weapon class (e.g., AssaultRifle, SniperRifle, etc.)
+#include "WeaponSlotSystem.h"
+#include "ArmorSystem.h"
+#include "AmmoTypes.h"
 #include "LoadoutManager.generated.h"
 
-// Forward declarations for the mech parts and blueprint
 USTRUCT(BlueprintType)
-struct FMechBlueprint
+struct FMechLoadout
 {
     GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Stats")
-    FString BlueprintName;
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
+    FString LoadoutName;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Components")
-    ECockpitSize CockpitSize;
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
+    TMap<EWeaponSlot, FString> Weapons; // Map of weapons per slot
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Components")
-    FCockpitModifiers CockpitModifiers;
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
+    TMap<EWeaponSlot, EAmmoType> AmmoTypes; // Ammo selection for each weapon slot
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Components")
-    TArray<FString> Weapons; // List of weapons
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
+    EArmorType ArmorType; // Armor selection
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Stats")
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
     float Health;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Stats")
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
     float Speed;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Stats")
-    float Armor;
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
+    float ArmorValue;
 
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Stats")
+    UPROPERTY(BlueprintReadWrite, Category = "Loadout")
     float Energy;
-
-    UPROPERTY(BlueprintReadWrite, Category = "Mech Components")
-    TArray<FString> Parts; // List of other parts like armor, legs, etc.
 };
 
 UCLASS()
@@ -45,29 +46,25 @@ class AEGISPROTOCOL_API ALoadoutManager : public AActor
     GENERATED_BODY()
 
 public:
-    // Sets default values for this actor's properties
     ALoadoutManager();
 
 protected:
-    // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
 public:
-    // Called every frame
     virtual void Tick(float DeltaTime) override;
 
-    // Function to load the saved blueprint from SaveGame or file
     UFUNCTION(BlueprintCallable, Category = "Loadout")
-    FMechBlueprint LoadBlueprint();
+    FMechLoadout LoadLoadout();
 
-    // Function to apply the loaded blueprint to the player's mech
     UFUNCTION(BlueprintCallable, Category = "Loadout")
-    void ApplyBlueprintToMech(const FMechBlueprint& Blueprint);
+    void ApplyLoadoutToMech(const FMechLoadout& Loadout);
+
+    UFUNCTION(BlueprintCallable, Category = "Loadout")
+    void SaveLoadout(const FMechLoadout& Loadout);
 
 private:
-    // Function to equip weapons for the player's mech
-    void EquipWeapon(const FString& WeaponName);
-
-    // Function to update the mech's stats
-    void UpdateMechStats(const FMechBlueprint& Blueprint);
+    void EquipWeapon(EWeaponSlot Slot, const FString& WeaponName, EAmmoType AmmoType);
+    void ApplyArmor(EArmorType ArmorType);
+    void UpdateMechStats(const FMechLoadout& Loadout);
 };

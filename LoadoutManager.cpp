@@ -1,127 +1,109 @@
+// Aegis Protocol - LoadoutManager.cpp
+// Implements mech customization, weapon, armor, and stat management.
+
 #include "LoadoutManager.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
-#include "MechCharacter.h" // Assuming this is your mech character class
+#include "MechCharacter.h"
+#include "WeaponSystem.h"
 
-// Sets default values
 ALoadoutManager::ALoadoutManager()
 {
-    // Set this actor to call Tick() every frame.
     PrimaryActorTick.bCanEverTick = true;
 }
 
-// Called when the game starts or when spawned
 void ALoadoutManager::BeginPlay()
 {
     Super::BeginPlay();
 }
 
-// Called every frame
 void ALoadoutManager::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 }
 
-// Function to load the saved blueprint from SaveGame or file
-FMechBlueprint ALoadoutManager::LoadBlueprint()
+FMechLoadout ALoadoutManager::LoadLoadout()
 {
-    FMechBlueprint LoadedBlueprint;
+    FMechLoadout LoadedLoadout;
 
-    // Load the saved blueprint from the SaveGame system
-    UGameplayStatics::LoadGameFromSlot("MechBlueprint", 0);
+    UGameplayStatics::LoadGameFromSlot("MechLoadout", 0);
 
-    // If the loaded game data is valid, return the loaded blueprint
     if (LoadedGame)
     {
-        LoadedBlueprint = LoadedGame->SavedBlueprint;
+        LoadedLoadout = LoadedGame->SavedLoadout;
     }
 
-    return LoadedBlueprint;
+    return LoadedLoadout;
 }
 
-// Function to apply the loaded blueprint to the player's mech
-void ALoadoutManager::ApplyBlueprintToMech(const FMechBlueprint& Blueprint)
+void ALoadoutManager::ApplyLoadoutToMech(const FMechLoadout& Loadout)
 {
-    // Assuming AMechCharacter is the player class
     AMechCharacter* PlayerMech = Cast<AMechCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 
     if (PlayerMech)
     {
-        // Apply the selected blueprint to the player's mech
-        PlayerMech->SetCockpitSize(Blueprint.CockpitSize);
-        PlayerMech->SetHealth(Blueprint.Health);
-        PlayerMech->SetSpeed(Blueprint.Speed);
-        PlayerMech->SetArmor(Blueprint.Armor);
-        PlayerMech->SetEnergy(Blueprint.Energy);
+        // Apply stats
+        PlayerMech->SetHealth(Loadout.Health);
+        PlayerMech->SetSpeed(Loadout.Speed);
+        PlayerMech->SetArmor(Loadout.ArmorValue);
+        PlayerMech->SetEnergy(Loadout.Energy);
 
-        // Equip the weapons
-        for (const FString& WeaponName : Blueprint.Weapons)
+        // Equip Weapons
+        for (auto& WeaponSlot : Loadout.Weapons)
         {
-            EquipWeapon(WeaponName);
+            EquipWeapon(WeaponSlot.Key, WeaponSlot.Value, Loadout.AmmoTypes[WeaponSlot.Key]);
         }
 
-        // Update any other part of the mech stats
-        UpdateMechStats(Blueprint);
+        // Apply Armor
+        ApplyArmor(Loadout.ArmorType);
+
+        // Update Mech Stats
+        UpdateMechStats(Loadout);
     }
 }
 
-// Function to equip weapons for the player's mech
-void ALoadoutManager::EquipWeapon(const FString& WeaponName)
+void ALoadoutManager::SaveLoadout(const FMechLoadout& Loadout)
 {
-    // Logic to equip the weapon based on the name or loadout
-    UE_LOG(LogTemp, Log, TEXT("Equipped weapon: %s"), *WeaponName);
+    UGameplayStatics::SaveGameToSlot(Loadout, "MechLoadout", 0);
+}
 
-    // Assuming WeaponName corresponds to the class of the weapon you want to equip.
-    // For example, we could have different weapon classes for different types: sniper, assault rifle, etc.
+void ALoadoutManager::EquipWeapon(EWeaponSlot Slot, const FString& WeaponName, EAmmoType AmmoType)
+{
+    UE_LOG(LogTemp, Log, TEXT("Equipping %s in %s slot with %s ammo"), *WeaponName, *UEnum::GetValueAsString(Slot), *UEnum::GetValueAsString(AmmoType));
 
     TSubclassOf<AWeapon> WeaponClass = nullptr;
 
-    // Find the weapon class based on the WeaponName
-    if (WeaponName == "AssaultRifle")
-    {
-        WeaponClass = AAssaultRifle::StaticClass();
-    }
-    else if (WeaponName == "SniperRifle")
-    {
-        WeaponClass = ASniperRifle::StaticClass();
-    }
-    else if (WeaponName == "RocketLauncher")
-    {
-        WeaponClass = ARocketLauncher::StaticClass();
-    }
+    if (WeaponName == "AssaultRifle") WeaponClass = AAssaultRifle::StaticClass();
+    else if (WeaponName == "SniperRifle") WeaponClass = ASniperRifle::StaticClass();
+    else if (WeaponName == "Shotgun") WeaponClass = AShotgun::StaticClass();
+    else if (WeaponName == "MachineGun") WeaponClass = AMachineGun::StaticClass();
+    else if (WeaponName == "RocketLauncher") WeaponClass = ARocketLauncher::StaticClass();
+    else if (WeaponName == "GrenadeLauncher") WeaponClass = AGrenadeLauncher::StaticClass();
+    else if (WeaponName == "LockOnMissile") WeaponClass = ALockOnMissile::StaticClass();
+    else if (WeaponName == "MeleeWeapon") WeaponClass = AMeleeWeapon::StaticClass();
+    else if (WeaponName == "EMPWeapon") WeaponClass = AEMPWeapon::StaticClass();
     else
     {
         UE_LOG(LogTemp, Warning, TEXT("Weapon %s not found!"), *WeaponName);
         return;
     }
 
-    // If we have a valid WeaponClass, spawn the weapon
-    if (WeaponClass != nullptr)
+    if (WeaponClass)
     {
-        // Get the player's mech character (this assumes your mech is an actor or character)
         AMechCharacter* PlayerMech = Cast<AMechCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
 
         if (PlayerMech)
         {
-            // Spawn the weapon in the game world
             FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = PlayerMech; // Set the owner to the player's mech
+            SpawnParams.Owner = PlayerMech;
             AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass, PlayerMech->GetActorLocation(), FRotator::ZeroRotator, SpawnParams);
 
             if (NewWeapon)
             {
-                // Attach the weapon to a specific socket on the mech (e.g., hand, back, etc.)
-                USkeletalMeshComponent* MechMesh = PlayerMech->GetMesh();
-                if (MechMesh)
-                {
-                    // Example of attaching to a specific socket (adjust the socket name as needed)
-                    MechMesh->AttachActorToComponent(NewWeapon, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("WeaponSocket"));
-                }
-
-                // Optionally, you can set additional parameters (e.g., ammo, fire rate, etc.) for the weapon
+                PlayerMech->GetWeaponSlotSystem()->AssignWeapon(Slot, NewWeapon);
+                NewWeapon->SetAmmoType(AmmoType);
                 NewWeapon->SetOwner(PlayerMech);
-                UE_LOG(LogTemp, Log, TEXT("Weapon %s equipped!"), *WeaponName);
             }
             else
             {
@@ -131,19 +113,38 @@ void ALoadoutManager::EquipWeapon(const FString& WeaponName)
     }
 }
 
-// Function to update the mech's stats (like health, speed, etc.)
-void ALoadoutManager::UpdateMechStats(const FMechBlueprint& Blueprint)
+void ALoadoutManager::ApplyArmor(EArmorType ArmorType)
 {
-    // Example of how stats might be applied
-    if (Blueprint.Health > 0)
+    UE_LOG(LogTemp, Log, TEXT("Armor Applied: %s"), *UEnum::GetValueAsString(ArmorType));
+
+    AMechCharacter* PlayerMech = Cast<AMechCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+    if (PlayerMech)
     {
-        // Update the health or other stats accordingly
-        UE_LOG(LogTemp, Log, TEXT("Mech health updated to: %f"), Blueprint.Health);
+        PlayerMech->GetArmorSystem()->SetArmorType(ArmorType);
+    }
+}
+
+void ALoadoutManager::UpdateMechStats(const FMechLoadout& Loadout)
+{
+    AMechCharacter* PlayerMech = Cast<AMechCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+    if (!PlayerMech) return;
+
+    float TotalWeight = 0.0f;
+
+    for (auto& WeaponSlot : Loadout.Weapons)
+    {
+        if (WeaponSlot.Value.Contains("SniperRifle")) TotalWeight += 25.0f;
+        else if (WeaponSlot.Value.Contains("AssaultRifle")) TotalWeight += 15.0f;
+        else if (WeaponSlot.Value.Contains("Shotgun")) TotalWeight += 18.0f;
+        else if (WeaponSlot.Value.Contains("MachineGun")) TotalWeight += 30.0f;
+        else if (WeaponSlot.Value.Contains("RocketLauncher")) TotalWeight += 40.0f;
+        else if (WeaponSlot.Value.Contains("GrenadeLauncher")) TotalWeight += 35.0f;
+        else if (WeaponSlot.Value.Contains("LockOnMissile")) TotalWeight += 20.0f;
+        else if (WeaponSlot.Value.Contains("MeleeWeapon")) TotalWeight += 10.0f;
+        else if (WeaponSlot.Value.Contains("EMPWeapon")) TotalWeight += 12.0f;
     }
 
-    if (Blueprint.Speed > 0)
-    {
-        // Update speed or other stats accordingly
-        UE_LOG(LogTemp, Log, TEXT("Mech speed updated to: %f"), Blueprint.Speed);
-    }
+    float AdjustedSpeed = Loadout.Speed - (TotalWeight * 0.1f);
+    AdjustedSpeed = FMath::Clamp(AdjustedSpeed, 50.0f, Loadout.Speed);
+    PlayerMech->SetSpeed(AdjustedSpeed);
 }
